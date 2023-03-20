@@ -1,0 +1,21 @@
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    kompose.cmd: kompose convert -f docker-compose.yml -o ./.helm/templates
+    kompose.service.expose: {{ .Values.client_host }}
+    kompose.service.expose.ingress-class-name: nginx
+    kompose.version: 1.28.0 (HEAD)
+  creationTimestamp: null
+  labels:
+    io.kompose.service: chatgpt-ui-client
+  name: chatgpt-ui-client
+spec:
+  ports:
+    - name: "80"
+      port: 80
+      targetPort: 80
+  selector:
+    io.kompose.service: chatgpt-ui-client
+status:
+  loadBalancer: {}

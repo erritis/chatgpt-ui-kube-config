@@ -1,0 +1,14 @@
+**/config/*
+**/secret/*
+**/secret-values.yaml
+*-configmap.yaml
+*-secret.yaml
+.werf_secret_key
+
+!**/*.example
+!.helm/secret/*
+!.helm/config/*
+!.helm/secret-values.yaml
+!.gitkeep
+
+

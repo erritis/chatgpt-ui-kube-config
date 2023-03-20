@@ -1,0 +1,24 @@
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    kompose.cmd: kompose convert -f docker-compose.yml -o ./.helm/templates
+    kompose.controller.type: statefulset
+    kompose.service.nodeport.port: "32532"
+    kompose.service.type: nodeport
+    kompose.version: 1.28.0 (HEAD)
+  creationTimestamp: null
+  labels:
+    io.kompose.service: chatgptdb
+  name: chatgptdb
+spec:
+  ports:
+    - name: "32532"
+      nodePort: 32532
+      port: 32532
+      targetPort: 5432
+  selector:
+    io.kompose.service: chatgptdb
+  type: NodePort
+status:
+  loadBalancer: {}

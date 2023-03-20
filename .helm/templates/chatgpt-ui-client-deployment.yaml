@@ -1,0 +1,59 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+    kompose.cmd: kompose convert -f docker-compose.yml -o ./.helm/templates
+    kompose.service.expose: {{ .Values.client_host }}
+    kompose.service.expose.ingress-class-name: nginx
+    kompose.version: 1.28.0 (HEAD)
+  creationTimestamp: null
+  labels:
+    io.kompose.service: chatgpt-ui-client
+  name: chatgpt-ui-client
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      io.kompose.service: chatgpt-ui-client
+  strategy: {}
+  template:
+    metadata:
+      annotations:
+        kompose.cmd: kompose convert -f docker-compose.yml -o ./.helm/templates
+        kompose.service.expose: {{ .Values.client_host }}
+        kompose.service.expose.ingress-class-name: nginx
+        kompose.version: 1.28.0 (HEAD)
+      creationTimestamp: null
+      labels:
+        io.kompose.network/chatgpt-ui-network: "true"
+        io.kompose.service: chatgpt-ui-client
+    spec:
+      containers:
+        - env:
+            - name: NUXT_PUBLIC_APP_NAME
+              valueFrom:
+                configMapKeyRef:
+                  key: NUXT_PUBLIC_APP_NAME
+                  name: origin-config-client-env
+            - name: NUXT_PUBLIC_TYPEWRITER
+              valueFrom:
+                configMapKeyRef:
+                  key: NUXT_PUBLIC_TYPEWRITER
+                  name: origin-config-client-env
+            - name: NUXT_PUBLIC_TYPEWRITER_DELAY
+              valueFrom:
+                configMapKeyRef:
+                  key: NUXT_PUBLIC_TYPEWRITER_DELAY
+                  name: origin-config-client-env
+            - name: SERVER_DOMAIN
+              valueFrom:
+                configMapKeyRef:
+                  key: SERVER_DOMAIN
+                  name: origin-config-client-env
+          image: wongsaang/chatgpt-ui-client:latest
+          name: chatgpt-ui-client
+          ports:
+            - containerPort: 80
+          resources: {}
+      restartPolicy: Always
+status: {}

@@ -1,0 +1,44 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+    kompose.cmd: kompose convert -f docker-compose.yml -o ./.helm/templates
+    kompose.service.expose: {{ .Values.server_host }}
+    kompose.service.expose.ingress-class-name: nginx
+    kompose.version: 1.28.0 (HEAD)
+  creationTimestamp: null
+  labels:
+    io.kompose.service: chatgpt-ui-web-server
+  name: chatgpt-ui-web-server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      io.kompose.service: chatgpt-ui-web-server
+  strategy: {}
+  template:
+    metadata:
+      annotations:
+        kompose.cmd: kompose convert -f docker-compose.yml -o ./.helm/templates
+        kompose.service.expose: {{ .Values.server_host }}
+        kompose.service.expose.ingress-class-name: nginx
+        kompose.version: 1.28.0 (HEAD)
+      creationTimestamp: null
+      labels:
+        io.kompose.network/chatgpt-ui-network: "true"
+        io.kompose.service: chatgpt-ui-web-server
+    spec:
+      containers:
+        - env:
+            - name: BACKEND_URL
+              valueFrom:
+                configMapKeyRef:
+                  key: BACKEND_URL
+                  name: origin-config-server-env
+          image: wongsaang/chatgpt-ui-web-server:latest
+          name: chatgpt-ui-web-server
+          ports:
+            - containerPort: 80
+          resources: {}
+      restartPolicy: Always
+status: {}

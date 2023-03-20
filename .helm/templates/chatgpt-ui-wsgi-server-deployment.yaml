@@ -1,0 +1,60 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+    kompose.cmd: kompose convert -f docker-compose.yml -o ./.helm/templates
+    kompose.version: 1.28.0 (HEAD)
+  creationTimestamp: null
+  labels:
+    io.kompose.service: chatgpt-ui-wsgi-server
+  name: chatgpt-ui-wsgi-server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      io.kompose.service: chatgpt-ui-wsgi-server
+  strategy: {}
+  template:
+    metadata:
+      annotations:
+        kompose.cmd: kompose convert -f docker-compose.yml -o ./.helm/templates
+        kompose.version: 1.28.0 (HEAD)
+      creationTimestamp: null
+      labels:
+        io.kompose.network/chatgpt-ui-network: "true"
+        io.kompose.service: chatgpt-ui-wsgi-server
+    spec:
+      containers:
+        - env:
+            - name: APP_DOMAIN
+              valueFrom:
+                configMapKeyRef:
+                  key: APP_DOMAIN
+                  name: origin-config-wsgi-env
+            - name: DB_URL
+              valueFrom:
+                configMapKeyRef:
+                  key: DB_URL
+                  name: origin-config-wsgi-env
+            - name: DJANGO_SUPERUSER_EMAIL
+              valueFrom:
+                configMapKeyRef:
+                  key: DJANGO_SUPERUSER_EMAIL
+                  name: origin-config-wsgi-env
+            - name: DJANGO_SUPERUSER_PASSWORD
+              valueFrom:
+                configMapKeyRef:
+                  key: DJANGO_SUPERUSER_PASSWORD
+                  name: origin-config-wsgi-env
+            - name: DJANGO_SUPERUSER_USERNAME
+              valueFrom:
+                configMapKeyRef:
+                  key: DJANGO_SUPERUSER_USERNAME
+                  name: origin-config-wsgi-env
+          image: wongsaang/chatgpt-ui-wsgi-server:latest
+          name: chatgpt-ui-wsgi-server
+          ports:
+            - containerPort: 8000
+          resources: {}
+      restartPolicy: Always
+status: {}
