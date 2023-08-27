@@ -2,9 +2,11 @@ apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
     kompose.cmd: kompose convert -f docker-compose.yml -o ./.helm/templates
-    kompose.service.expose: {{ .Values.client_host }}
+    kompose.service.expose: {{ .Values.client_domain }}
     kompose.service.expose.ingress-class-name: nginx
+    kompose.service.expose.tls-secret: chatgpt-ui-client-secret
     kompose.version: 1.28.0 (HEAD)
   creationTimestamp: null
   labels:
@@ -13,7 +15,7 @@ metadata:
 spec:
   ingressClassName: nginx
   rules:
-    - host: {{ .Values.client_host }}
+    - host: {{ .Values.client_domain }}
       http:
         paths:
           - backend:
@@ -23,5 +25,9 @@ spec:
                   number: 80
             path: /
             pathType: Prefix
+  tls:
+    - hosts:
+        - {{ .Values.client_domain }}
+      secretName: chatgpt-ui-client-secret
 status:
   loadBalancer: {}

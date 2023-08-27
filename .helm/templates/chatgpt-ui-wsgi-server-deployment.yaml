@@ -26,31 +26,22 @@ spec:
     spec:
       containers:
         - env:
+            - name: ACCOUNT_EMAIL_VERIFICATION
+              value: {{ .Values.account_email_verification }}
             - name: APP_DOMAIN
-              valueFrom:
-                configMapKeyRef:
-                  key: APP_DOMAIN
-                  name: origin-config-wsgi-env
+              value: {{ .Values.django_domain }}
             - name: DB_URL
-              valueFrom:
-                configMapKeyRef:
-                  key: DB_URL
-                  name: origin-config-wsgi-env
+              value: {{ .Values.db_url }}
             - name: DJANGO_SUPERUSER_EMAIL
-              valueFrom:
-                configMapKeyRef:
-                  key: DJANGO_SUPERUSER_EMAIL
-                  name: origin-config-wsgi-env
+              value: {{ .Values.django_superuser_email }}
             - name: DJANGO_SUPERUSER_PASSWORD
-              valueFrom:
-                configMapKeyRef:
-                  key: DJANGO_SUPERUSER_PASSWORD
-                  name: origin-config-wsgi-env
+              value: {{ .Values.django_superuser_password }}
             - name: DJANGO_SUPERUSER_USERNAME
-              valueFrom:
-                configMapKeyRef:
-                  key: DJANGO_SUPERUSER_USERNAME
-                  name: origin-config-wsgi-env
+              value: {{ .Values.django_superuser_username }}
+            - name: SERVER_WORKERS
+              value: "3"
+            - name: WORKER_TIMEOUT
+              value: "180"
           image: wongsaang/chatgpt-ui-wsgi-server:latest
           name: chatgpt-ui-wsgi-server
           ports:

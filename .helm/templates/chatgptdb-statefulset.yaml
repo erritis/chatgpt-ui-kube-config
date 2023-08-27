@@ -4,8 +4,7 @@ metadata:
   annotations:
     kompose.cmd: kompose convert -f docker-compose.yml -o ./.helm/templates
     kompose.controller.type: statefulset
-    kompose.service.nodeport.port: "32532"
-    kompose.service.type: nodeport
+    kompose.service.type: clusterip
     kompose.version: 1.28.0 (HEAD)
   creationTimestamp: null
   labels:

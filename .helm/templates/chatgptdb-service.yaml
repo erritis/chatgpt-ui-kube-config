@@ -4,8 +4,7 @@ metadata:
   annotations:
     kompose.cmd: kompose convert -f docker-compose.yml -o ./.helm/templates
     kompose.controller.type: statefulset
-    kompose.service.nodeport.port: "32532"
-    kompose.service.type: nodeport
+    kompose.service.type: clusterip
     kompose.version: 1.28.0 (HEAD)
   creationTimestamp: null
   labels:
@@ -13,12 +12,11 @@ metadata:
   name: chatgptdb
 spec:
   ports:
-    - name: "32532"
-      nodePort: 32532
-      port: 32532
+    - name: "5432"
+      port: 5432
       targetPort: 5432
   selector:
     io.kompose.service: chatgptdb
-  type: NodePort
+  type: ClusterIP
 status:
   loadBalancer: {}

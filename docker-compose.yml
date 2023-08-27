@@ -5,12 +5,11 @@ services:
     image: postgres:12.9
     labels:
       kompose.controller.type: "statefulset"
-      kompose.service.type: nodeport
-      kompose.service.nodeport.port: 32532
+      kompose.service.type: clusterip
     volumes:
       - chatgptdb:/var/lib/postgresql/data
     ports:
-      - "32532:5432"
+      - "5432:5432"
     environment:
       POSTGRES_DB_FILE: /run/secrets/chatgpt-db/chatgpt-db
       POSTGRES_USER_FILE: /run/secrets/chatgpt-db-user/chatgpt-db-user
@@ -29,16 +28,15 @@ services:
 
   chatgpt-ui-wsgi-server:
     image: wongsaang/chatgpt-ui-wsgi-server:latest
-    # labels:
-    #   kompose.image-pull-secret: registry-auth-client-secret
-    env_file:
-      - .origin/config/wsgi.env
     environment:
-      APP_DOMAIN: ${APP_DOMAIN}
-      DB_URL: ${DB_URL}
-      DJANGO_SUPERUSER_USERNAME: ${DJANGO_SUPERUSER_USERNAME}
-      DJANGO_SUPERUSER_PASSWORD: ${DJANGO_SUPERUSER_PASSWORD}
-      DJANGO_SUPERUSER_EMAIL: ${DJANGO_SUPERUSER_EMAIL}
+      APP_DOMAIN: "{{ .Values.django_domain }}"
+      DB_URL: "{{ .Values.db_url }}"
+      DJANGO_SUPERUSER_USERNAME: "{{ .Values.django_superuser_username }}"
+      DJANGO_SUPERUSER_PASSWORD: "{{ .Values.django_superuser_password }}"
+      DJANGO_SUPERUSER_EMAIL: "{{ .Values.django_superuser_email }}"
+      SERVER_WORKERS: 3
+      WORKER_TIMEOUT: 180
+      ACCOUNT_EMAIL_VERIFICATION:  "{{ .Values.account_email_verification }}"
     ports:
       - '80:8000'
     depends_on:
@@ -50,15 +48,12 @@ services:
     container_name: chatgpt-ui-web-server
     image: wongsaang/chatgpt-ui-web-server:latest
     labels:
-      kompose.service.expose: "{{ .Values.server_host }}"
+      kompose.service.expose: "{{ .Values.django_domain }}"
       kompose.service.expose.ingress-class-name: "nginx"
-    env_file:
-      - .origin/config/server.env
+      kompose.service.expose.tls-secret: "chatgpt-ui-web-server-secret"
+      cert-manager.io/cluster-issuer: letsencrypt-prod
     environment:
-      BACKEND_URL: ${BACKEND_URL}
-    # configs:
-    #   - source: chatgpt-ui-server-conf
-    #     target: /etc/nginx/templates/default.conf.template
+      BACKEND_URL: "{{ .Values.backend_url }}"
     ports:
       - '80:80'
     depends_on:
@@ -70,31 +65,21 @@ services:
     container_name: chatgpt-ui-client
     image: wongsaang/chatgpt-ui-client:latest
     labels:
-      kompose.service.expose: "{{ .Values.client_host }}"
+      kompose.service.expose: "{{ .Values.client_domain }}"
       kompose.service.expose.ingress-class-name: "nginx"
-      # kompose.image-pull-secret: registry-auth-client-secret
-    env_file:
-      - .origin/config/client.env
+      kompose.service.expose.tls-secret: "chatgpt-ui-client-secret"
+      cert-manager.io/cluster-issuer: letsencrypt-prod
     environment:
-      SERVER_DOMAIN: ${SERVER_DOMAIN}
-      NUXT_PUBLIC_APP_NAME: ${NUXT_PUBLIC_APP_NAME}
-      NUXT_PUBLIC_TYPEWRITER: ${NUXT_PUBLIC_TYPEWRITER}
-      NUXT_PUBLIC_TYPEWRITER_DELAY: ${NUXT_PUBLIC_TYPEWRITER_DELAY}
-    # configs:
-    #   - source: chatgpt-ui-conf
-    #     target: /etc/nginx/templates/default.conf.template
+      SERVER_DOMAIN:  "{{ .Values.server_domain }}"
+      NUXT_PUBLIC_APP_NAME:  "{{ .Values.nuxt_public_app_name }}"
+      NUXT_PUBLIC_TYPEWRITER:  false
+
     depends_on:
       - chatgpt-ui-web-server
     ports:
       - '80:80'
     networks:
       - chatgpt-ui-network
-
-# configs:
-#   chatgpt-ui-conf:
-#     file: chatgpt-ui.conf
-#   chatgpt-ui-server-conf:
-#     file: chatgpt-ui-server.conf
 
 secrets:
   chatgpt-db:

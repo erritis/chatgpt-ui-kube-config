@@ -2,9 +2,11 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
     kompose.cmd: kompose convert -f docker-compose.yml -o ./.helm/templates
-    kompose.service.expose: {{ .Values.client_host }}
+    kompose.service.expose: {{ .Values.client_domain }}
     kompose.service.expose.ingress-class-name: nginx
+    kompose.service.expose.tls-secret: chatgpt-ui-client-secret
     kompose.version: 1.28.0 (HEAD)
   creationTimestamp: null
   labels:
@@ -19,9 +21,11 @@ spec:
   template:
     metadata:
       annotations:
+        cert-manager.io/cluster-issuer: letsencrypt-prod
         kompose.cmd: kompose convert -f docker-compose.yml -o ./.helm/templates
-        kompose.service.expose: {{ .Values.client_host }}
+        kompose.service.expose: {{ .Values.client_domain }}
         kompose.service.expose.ingress-class-name: nginx
+        kompose.service.expose.tls-secret: chatgpt-ui-client-secret
         kompose.version: 1.28.0 (HEAD)
       creationTimestamp: null
       labels:
@@ -31,25 +35,11 @@ spec:
       containers:
         - env:
             - name: NUXT_PUBLIC_APP_NAME
-              valueFrom:
-                configMapKeyRef:
-                  key: NUXT_PUBLIC_APP_NAME
-                  name: origin-config-client-env
+              value: {{ .Values.nuxt_public_app_name }}
             - name: NUXT_PUBLIC_TYPEWRITER
-              valueFrom:
-                configMapKeyRef:
-                  key: NUXT_PUBLIC_TYPEWRITER
-                  name: origin-config-client-env
-            - name: NUXT_PUBLIC_TYPEWRITER_DELAY
-              valueFrom:
-                configMapKeyRef:
-                  key: NUXT_PUBLIC_TYPEWRITER_DELAY
-                  name: origin-config-client-env
+              value: "false"
             - name: SERVER_DOMAIN
-              valueFrom:
-                configMapKeyRef:
-                  key: SERVER_DOMAIN
-                  name: origin-config-client-env
+              value: {{ .Values.server_domain }}
           image: wongsaang/chatgpt-ui-client:latest
           name: chatgpt-ui-client
           ports:

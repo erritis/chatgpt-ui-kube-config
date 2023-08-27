@@ -2,9 +2,11 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
     kompose.cmd: kompose convert -f docker-compose.yml -o ./.helm/templates
-    kompose.service.expose: {{ .Values.server_host }}
+    kompose.service.expose: {{ .Values.django_domain }}
     kompose.service.expose.ingress-class-name: nginx
+    kompose.service.expose.tls-secret: chatgpt-ui-web-server-secret
     kompose.version: 1.28.0 (HEAD)
   creationTimestamp: null
   labels:
@@ -19,9 +21,11 @@ spec:
   template:
     metadata:
       annotations:
+        cert-manager.io/cluster-issuer: letsencrypt-prod
         kompose.cmd: kompose convert -f docker-compose.yml -o ./.helm/templates
-        kompose.service.expose: {{ .Values.server_host }}
+        kompose.service.expose: {{ .Values.django_domain }}
         kompose.service.expose.ingress-class-name: nginx
+        kompose.service.expose.tls-secret: chatgpt-ui-web-server-secret
         kompose.version: 1.28.0 (HEAD)
       creationTimestamp: null
       labels:
@@ -31,10 +35,7 @@ spec:
       containers:
         - env:
             - name: BACKEND_URL
-              valueFrom:
-                configMapKeyRef:
-                  key: BACKEND_URL
-                  name: origin-config-server-env
+              value: {{ .Values.backend_url }}
           image: wongsaang/chatgpt-ui-web-server:latest
           name: chatgpt-ui-web-server
           ports:
