@@ -26,27 +26,15 @@ To work with this project you need:
 
 > **Warning**
 >
-> This is not required for minicube and kubernetes with default storage providers configured. Skip this step if this is your case.
-
-If you do not have configured storage providers, then in the files [local-storage.yaml](local-storage.yaml) and [chatgptdb-pv-0.yaml](chatgptdb-pv-0.yaml) you will find ready-made configs for the local storage in the cluster, to deploy them, run the command:
-
-> just werf-up-storage
+> This is not required for minikube and kubernetes with default storage providers configured. Skip this step if this is your case.
 
 Then you need to create a folder on the server:
 
 > sudo mkdir /mnt/chatgptdb
 
-For complete removal:
-
-> just werf-down-storage
-
 The default folder will not be cleared. To remove it, go to the server and run:
 
 > sudo rm -Rf /mnt/chatgptdb
-
-Also in the file [chatgptdb-pv-0.yaml](chatgptdb-pv-0.yaml) you can change the behavior so that when you delete **PersistentVolume**, the contents of the folder on the server are also deleted:
-
-> persistentVolumeReclaimPolicy: Delete
 
 ---
 
@@ -60,21 +48,13 @@ To create configurations for Kubernetes, run:
 
 After that, in the folder [.helm/templates](.helm/templates) there will be configuration files and secrets that do not fall into the git history.
 
-To deploy configurations and secrets, run:
-
-> just werf-up-conf
-
-To completely remove them:
-
-> just werf-down-conf
-
 ---
 
 ### Application deployment:
 
 To deploy, run:
 
->just werf-up
+> just werf-up
 
 To uninstall an application, run:
 

@@ -1,5 +1,5 @@
 synth:
-  cd ./.cdk8s && cdk8s synth
+  cd ./.cdk8s && go run .
 werf-encrypt:
   werf helm secret values encrypt generator/secret-values.yaml -o .helm/secret-values.yaml
 werf-decrypt:

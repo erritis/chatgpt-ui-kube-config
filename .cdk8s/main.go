@@ -5,6 +5,7 @@ import (
 	"github.com/aws/jsii-runtime-go"
 	"github.com/cdk8s-team/cdk8s-core-go/cdk8s/v2"
 	"github.com/cdk8s-team/cdk8s-plus-go/cdk8splus26/v2"
+	cdk8skit "github.com/erritis/cdk8s-kit"
 )
 
 type DbChartProps struct {
@@ -39,9 +40,9 @@ func NewDbChart(scope constructs.Construct, id string, props *DbChartProps) cdk8
 	}
 	chart := cdk8s.NewChart(scope, jsii.String(id), &cprops)
 
-	storage := NewLocalStorage(chart, "local-storage")
+	storage := cdk8skit.NewLocalStorage(chart, "chatgpt-ui-local-storage")
 
-	dbData := NewLocalVolume(
+	dbData := cdk8skit.NewLocalVolume(
 		chart,
 		*storage.Name(),
 		"persistent-volume",
@@ -50,25 +51,25 @@ func NewDbChart(scope constructs.Construct, id string, props *DbChartProps) cdk8
 		&[]string{"master-node"},
 	)
 
-	db := NewSecretVolume(
+	db := cdk8skit.NewSecretVolume(
 		chart, "db-secret",
 		jsii.String("chatgpt-db"),
 		jsii.String("{{ .Values.db_name }}"),
 	)
 
-	dbUser := NewSecretVolume(
+	dbUser := cdk8skit.NewSecretVolume(
 		chart, "user-secret",
 		jsii.String("chatgpt-db-user"),
 		jsii.String("{{ .Values.db_username }}"),
 	)
 
-	dbPasswd := NewSecretVolume(
+	dbPasswd := cdk8skit.NewSecretVolume(
 		chart, "passwd-secret",
 		jsii.String("chatgpt-db-passwd"),
 		jsii.String("{{ .Values.db_password }}"),
 	)
 
-	NewStatefulSet(
+	cdk8skit.NewStatefulSet(
 		chart,
 		id,
 		jsii.String("postgres:12.9"),
@@ -81,7 +82,7 @@ func NewDbChart(scope constructs.Construct, id string, props *DbChartProps) cdk8
 			jsii.String("POSTGRES_PASSWORD_FILE"): jsii.String("/run/secrets/chatgpt-db-passwd/chatgpt-db-passwd"),
 		},
 		&map[*string]*cdk8splus26.Volume{
-			jsii.String("/var/lib/postgresql/data"):       &dbData.volume,
+			jsii.String("/var/lib/postgresql/data"):       &dbData.Volume,
 			jsii.String("/run/secrets/chatgpt-db"):        &db,
 			jsii.String("/run/secrets/chatgpt-db-user"):   &dbUser,
 			jsii.String("/run/secrets/chatgpt-db-passwd"): &dbPasswd,
@@ -98,7 +99,7 @@ func NewWsgiServerChart(scope constructs.Construct, id string, props *WsgiServer
 	}
 	chart := cdk8s.NewChart(scope, jsii.String(id), &cprops)
 
-	NewBackend(
+	cdk8skit.NewBackend(
 		chart,
 		id,
 		jsii.String("wongsaang/chatgpt-ui-wsgi-server:latest"),
@@ -127,7 +128,7 @@ func NewWebServerChart(scope constructs.Construct, id string, props *WebServerCh
 	}
 	chart := cdk8s.NewChart(scope, jsii.String(id), &cprops)
 
-	NewFrontend(
+	cdk8skit.NewFrontend(
 		chart,
 		id,
 		jsii.String("{{ .Values.django_domain }}"),
@@ -151,7 +152,7 @@ func NewClientChart(scope constructs.Construct, id string, props *ClientChartPro
 	}
 	chart := cdk8s.NewChart(scope, jsii.String(id), &cprops)
 
-	NewFrontend(
+	cdk8skit.NewFrontend(
 		chart,
 		id,
 		jsii.String("{{ .Values.client_domain }}"),
@@ -177,7 +178,7 @@ func NewNetworkChart(scope constructs.Construct, id string, props *NetworkChartP
 	}
 	chart := cdk8s.NewChart(scope, jsii.String(id), &cprops)
 
-	NewNetworkPolicy(chart, id, props.network)
+	cdk8skit.NewNetworkPolicy(chart, id, props.network)
 
 	return chart
 }
