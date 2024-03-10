@@ -1,0 +1,2 @@
+language: go
+app: go run .
