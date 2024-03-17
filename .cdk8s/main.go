@@ -1,16 +1,20 @@
 package main
 
 import (
+	"fmt"
+
 	"github.com/aws/constructs-go/constructs/v10"
 	"github.com/aws/jsii-runtime-go"
 	"github.com/cdk8s-team/cdk8s-core-go/cdk8s/v2"
 	"github.com/cdk8s-team/cdk8s-plus-go/cdk8splus26/v2"
-	cdk8skit "github.com/erritis/cdk8s-kit"
+	"github.com/erritis/cdk8skit"
 )
 
 type DbChartProps struct {
 	cdk8s.ChartProps
-	network string
+	environment string
+	network     string
+	storageName string
 }
 
 type WsgiServerChartProps struct {
@@ -40,16 +44,27 @@ func NewDbChart(scope constructs.Construct, id string, props *DbChartProps) cdk8
 	}
 	chart := cdk8s.NewChart(scope, jsii.String(id), &cprops)
 
-	storage := cdk8skit.NewLocalStorage(chart, "chatgpt-ui-local-storage")
+	var dbData cdk8skit.TuplePersistent
 
-	dbData := cdk8skit.NewLocalVolume(
-		chart,
-		*storage.Name(),
-		"persistent-volume",
-		cdk8s.Size_Gibibytes(jsii.Number(0.1)),
-		"/mnt/chatgptdb",
-		&[]string{"master-node"},
-	)
+	if props.environment == "Production" {
+		cdk8skit.NewLocalStorage(chart, props.storageName)
+		dbData = cdk8skit.NewLocalVolume(
+			chart,
+			props.storageName,
+			"persistent-volume",
+			cdk8s.Size_Gibibytes(jsii.Number(0.1)),
+			"/mnt/chatgptdb",
+			&[]string{"master-node"},
+		)
+	}
+	if props.environment != "Production" {
+		dbData = cdk8skit.NewVolume(
+			chart,
+			props.storageName,
+			"persistent-volume",
+			cdk8s.Size_Gibibytes(jsii.Number(0.1)),
+		)
+	}
 
 	db := cdk8skit.NewSecretVolume(
 		chart, "db-secret",
@@ -184,6 +199,13 @@ func NewNetworkChart(scope constructs.Construct, id string, props *NetworkChartP
 }
 
 func main() {
+
+	config, err := LoadConfig()
+
+	if err != nil {
+		fmt.Println(err)
+	}
+
 	app := cdk8s.NewApp(&cdk8s.AppProps{
 		Outdir:              jsii.String("../.helm/templates"),
 		OutputFileExtension: jsii.String(".yaml"),
@@ -196,8 +218,10 @@ func main() {
 	}
 
 	NewDbChart(app, "chatgpt-ui-db", &DbChartProps{
-		ChartProps: cprops,
-		network:    "io.network/chatgpt-ui-network",
+		ChartProps:  cprops,
+		network:     "io.network/chatgpt-ui-network",
+		environment: config.Environment,
+		storageName: config.StorageName,
 	})
 	NewWsgiServerChart(app, "chatgpt-ui-wsgi-server", &WsgiServerChartProps{
 		ChartProps: cprops,
