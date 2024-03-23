@@ -1,0 +1,17 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: chatgpt-ui-network
+  namespace: chatgpt-ui
+spec:
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              io.network/chatgpt-ui-network: "true"
+      ports: []
+  podSelector:
+    matchLabels:
+      io.network/chatgpt-ui-network: "true"
+  policyTypes:
+    - Ingress

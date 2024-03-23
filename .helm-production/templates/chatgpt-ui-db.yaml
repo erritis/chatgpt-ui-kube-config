@@ -41,7 +41,7 @@ metadata:
   namespace: chatgpt-ui
 immutable: false
 stringData:
-  chatgpt-db: "{{ .Values.db_name }}"
+  chatgpt-db: "{{ .Values.Db.Name }}"
 type: Opaque
 ---
 apiVersion: v1
@@ -51,7 +51,7 @@ metadata:
   namespace: chatgpt-ui
 immutable: false
 stringData:
-  chatgpt-db-user: "{{ .Values.db_username }}"
+  chatgpt-db-user: "{{ .Values.Db.Username }}"
 type: Opaque
 ---
 apiVersion: v1
@@ -61,7 +61,7 @@ metadata:
   namespace: chatgpt-ui
 immutable: false
 stringData:
-  chatgpt-db-passwd: "{{ .Values.db_password }}"
+  chatgpt-db-passwd: "{{ .Values.Db.Password }}"
 type: Opaque
 ---
 apiVersion: v1
@@ -104,12 +104,12 @@ spec:
       automountServiceAccountToken: false
       containers:
         - env:
+            - name: POSTGRES_PASSWORD_FILE
+              value: /run/secrets/chatgpt-db-passwd/chatgpt-db-passwd
             - name: POSTGRES_DB_FILE
               value: /run/secrets/chatgpt-db/chatgpt-db
             - name: POSTGRES_USER_FILE
               value: /run/secrets/chatgpt-db-user/chatgpt-db-user
-            - name: POSTGRES_PASSWORD_FILE
-              value: /run/secrets/chatgpt-db-passwd/chatgpt-db-passwd
           image: postgres:12.9
           imagePullPolicy: Always
           name: chatgpt-ui-db
@@ -125,14 +125,14 @@ spec:
             tcpSocket:
               port: 5432
           volumeMounts:
-            - mountPath: /run/secrets/chatgpt-db
-              name: chatgpt-db
             - mountPath: /run/secrets/chatgpt-db-user
               name: chatgpt-db-user
             - mountPath: /run/secrets/chatgpt-db-passwd
               name: chatgpt-db-passwd
             - mountPath: /var/lib/postgresql/data
               name: chatgpt-ui-db-persistent-volume-claim
+            - mountPath: /run/secrets/chatgpt-db
+              name: chatgpt-db
       dnsPolicy: ClusterFirst
       hostNetwork: false
       restartPolicy: Always
@@ -142,12 +142,6 @@ spec:
       setHostnameAsFQDN: false
       terminationGracePeriodSeconds: 30
       volumes:
-        - name: chatgpt-db
-          secret:
-            items:
-              - key: name
-                path: chatgpt-db
-            secretName: chatgpt-ui-db-db-secret
         - name: chatgpt-db-user
           secret:
             items:
@@ -164,6 +158,12 @@ spec:
           persistentVolumeClaim:
             claimName: chatgpt-ui-db-persistent-volume-claim
             readOnly: false
+        - name: chatgpt-db
+          secret:
+            items:
+              - key: name
+                path: chatgpt-db
+            secretName: chatgpt-ui-db-db-secret
   updateStrategy:
     rollingUpdate:
       partition: 0

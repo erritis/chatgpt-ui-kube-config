@@ -26,12 +26,12 @@ spec:
       automountServiceAccountToken: false
       containers:
         - env:
-            - name: NUXT_PUBLIC_APP_NAME
-              value: "{{ .Values.nuxt_public_app_name }}"
             - name: NUXT_PUBLIC_TYPEWRITER
               value: "false"
             - name: SERVER_DOMAIN
-              value: "{{ .Values.server_domain }}"
+              value: "{{ .Values.Client.ServerUrl }}"
+            - name: NUXT_PUBLIC_APP_NAME
+              value: "{{ .Values.Client.NuxtPublicAppName }}"
           image: wongsaang/chatgpt-ui-client:latest
           imagePullPolicy: Always
           name: chatgpt-ui-client
@@ -80,7 +80,7 @@ metadata:
   namespace: chatgpt-ui
 spec:
   rules:
-    - host: "{{ .Values.client_domain }}"
+    - host: "{{ .Values.Client.Domain }}"
       http:
         paths:
           - backend:

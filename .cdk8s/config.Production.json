@@ -1,3 +1,4 @@
 {
+    "Outdir": "../.helm-production/templates",
     "StorageName": "chatgpt-ui-local-storage"
 }

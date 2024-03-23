@@ -1,10 +1,6 @@
-**/secret/*
-**/secret-values.yaml
+**/secret-values.*.yaml
 .werf_secret_key
 
-!**/*.example
-!.helm/secret/*
-!.helm/secret-values.yaml
+*.env
+
 !.gitkeep
-
-

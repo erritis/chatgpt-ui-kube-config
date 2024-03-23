@@ -1,0 +1,151 @@
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: chatgpt-ui-db-persistent-volume
+  namespace: chatgpt-ui
+spec:
+  accessModes:
+    - ReadWriteOnce
+    - ReadOnlyMany
+  capacity:
+    storage: 0.1Gi
+  claimRef:
+    name: chatgpt-ui-db-persistent-volume-claim
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: default
+  volumeMode: Filesystem
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: chatgpt-ui-db-db-secret
+  namespace: chatgpt-ui
+immutable: false
+stringData:
+  chatgpt-db: "{{ .Values.Db.Name }}"
+type: Opaque
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: chatgpt-ui-db-user-secret
+  namespace: chatgpt-ui
+immutable: false
+stringData:
+  chatgpt-db-user: "{{ .Values.Db.Username }}"
+type: Opaque
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: chatgpt-ui-db-passwd-secret
+  namespace: chatgpt-ui
+immutable: false
+stringData:
+  chatgpt-db-passwd: "{{ .Values.Db.Password }}"
+type: Opaque
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    io.service: chatgpt-ui-db
+  name: chatgpt-ui-db-service
+  namespace: chatgpt-ui
+spec:
+  externalIPs: []
+  ports:
+    - port: 5432
+      targetPort: 5432
+  selector:
+    cdk8s.io/metadata.addr: chatgpt-ui-db-statefulset-c87a55ef
+  type: ClusterIP
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  labels:
+    io.service: chatgpt-ui-db
+  name: chatgpt-ui-db-statefulset
+  namespace: chatgpt-ui
+spec:
+  minReadySeconds: 0
+  podManagementPolicy: OrderedReady
+  replicas: 1
+  selector:
+    matchLabels:
+      cdk8s.io/metadata.addr: chatgpt-ui-db-statefulset-c87a55ef
+  serviceName: chatgpt-ui-db-service
+  template:
+    metadata:
+      labels:
+        cdk8s.io/metadata.addr: chatgpt-ui-db-statefulset-c87a55ef
+        io.network/chatgpt-ui-network: "true"
+    spec:
+      automountServiceAccountToken: false
+      containers:
+        - env:
+            - name: POSTGRES_PASSWORD_FILE
+              value: /run/secrets/chatgpt-db-passwd/chatgpt-db-passwd
+            - name: POSTGRES_DB_FILE
+              value: /run/secrets/chatgpt-db/chatgpt-db
+            - name: POSTGRES_USER_FILE
+              value: /run/secrets/chatgpt-db-user/chatgpt-db-user
+          image: postgres:12.9
+          imagePullPolicy: Always
+          name: chatgpt-ui-db
+          ports:
+            - containerPort: 5432
+          securityContext:
+            allowPrivilegeEscalation: false
+            privileged: false
+            readOnlyRootFilesystem: false
+            runAsNonRoot: false
+          startupProbe:
+            failureThreshold: 3
+            tcpSocket:
+              port: 5432
+          volumeMounts:
+            - mountPath: /var/lib/postgresql/data
+              name: chatgpt-ui-db-persistent-volume-claim
+            - mountPath: /run/secrets/chatgpt-db
+              name: chatgpt-db
+            - mountPath: /run/secrets/chatgpt-db-user
+              name: chatgpt-db-user
+            - mountPath: /run/secrets/chatgpt-db-passwd
+              name: chatgpt-db-passwd
+      dnsPolicy: ClusterFirst
+      hostNetwork: false
+      restartPolicy: Always
+      securityContext:
+        fsGroupChangePolicy: Always
+        runAsNonRoot: false
+      setHostnameAsFQDN: false
+      terminationGracePeriodSeconds: 30
+      volumes:
+        - name: chatgpt-ui-db-persistent-volume-claim
+          persistentVolumeClaim:
+            claimName: chatgpt-ui-db-persistent-volume-claim
+            readOnly: false
+        - name: chatgpt-db
+          secret:
+            items:
+              - key: name
+                path: chatgpt-db
+            secretName: chatgpt-ui-db-db-secret
+        - name: chatgpt-db-user
+          secret:
+            items:
+              - key: name
+                path: chatgpt-db-user
+            secretName: chatgpt-ui-db-user-secret
+        - name: chatgpt-db-passwd
+          secret:
+            items:
+              - key: name
+                path: chatgpt-db-passwd
+            secretName: chatgpt-ui-db-passwd-secret
+  updateStrategy:
+    rollingUpdate:
+      partition: 0
+    type: RollingUpdate

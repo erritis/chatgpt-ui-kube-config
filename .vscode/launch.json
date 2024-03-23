@@ -5,13 +5,11 @@
       "type": "go",
       "request": "launch",
       "mode": "debug",
-      "program": "${workspaceFolder}/.cdk8s",
+      "program": "${workspaceFolder}/.cdk8s/src",
       "cwd": "${workspaceFolder}/.cdk8s",
-      "args": [
-        //"--env=Production"
-      ],
+      "args": ["-e=Production"],
       "env": {
-        "CDK8S_ENVIRONMENT": "Production"
+        // "CDK8S_ENVIRONMENT": "Production"
         // "CDK8S_STORAGENAME": "fsdf"
       }
     }

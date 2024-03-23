@@ -69,19 +69,19 @@ func NewDbChart(scope constructs.Construct, id string, props *DbChartProps) cdk8
 	db := cdk8skit.NewSecretVolume(
 		chart, "db-secret",
 		jsii.String("chatgpt-db"),
-		jsii.String("{{ .Values.db_name }}"),
+		jsii.String("{{ .Values.Db.Name }}"),
 	)
 
 	dbUser := cdk8skit.NewSecretVolume(
 		chart, "user-secret",
 		jsii.String("chatgpt-db-user"),
-		jsii.String("{{ .Values.db_username }}"),
+		jsii.String("{{ .Values.Db.Username }}"),
 	)
 
 	dbPasswd := cdk8skit.NewSecretVolume(
 		chart, "passwd-secret",
 		jsii.String("chatgpt-db-passwd"),
-		jsii.String("{{ .Values.db_password }}"),
+		jsii.String("{{ .Values.Db.Password }}"),
 	)
 
 	cdk8skit.NewStatefulSet(
@@ -122,14 +122,14 @@ func NewWsgiServerChart(scope constructs.Construct, id string, props *WsgiServer
 		jsii.Number(8000),
 		props.network,
 		&map[*string]*string{
-			jsii.String("APP_DOMAIN"):                 jsii.String("{{ .Values.django_domain }}"),
-			jsii.String("DB_URL"):                     jsii.String("{{ .Values.db_url }}"),
-			jsii.String("DJANGO_SUPERUSER_USERNAME"):  jsii.String("{{ .Values.django_superuser_username }}"),
-			jsii.String("DJANGO_SUPERUSER_PASSWORD"):  jsii.String("{{ .Values.django_superuser_password }}"),
-			jsii.String("DJANGO_SUPERUSER_EMAIL"):     jsii.String("{{ .Values.django_superuser_email }}"),
+			jsii.String("APP_DOMAIN"):                 jsii.String("{{ .Values.WsgiServer.Domain }}"),
+			jsii.String("DB_URL"):                     jsii.String("{{ .Values.WsgiServer.DbUrl }}"),
+			jsii.String("DJANGO_SUPERUSER_USERNAME"):  jsii.String("{{ .Values.WsgiServer.Django.Superuser.Username }}"),
+			jsii.String("DJANGO_SUPERUSER_PASSWORD"):  jsii.String("{{ .Values.WsgiServer.Django.Superuser.Password }}"),
+			jsii.String("DJANGO_SUPERUSER_EMAIL"):     jsii.String("{{ .Values.WsgiServer.Django.Superuser.Email }}"),
 			jsii.String("SERVER_WORKERS"):             jsii.String("3"),
 			jsii.String("WORKER_TIMEOUT"):             jsii.String("180"),
-			jsii.String("ACCOUNT_EMAIL_VERIFICATION"): jsii.String("{{ .Values.account_email_verification }}"),
+			jsii.String("ACCOUNT_EMAIL_VERIFICATION"): jsii.String("{{ .Values.WsgiServer.AccountEmailVerification }}"),
 		},
 	)
 
@@ -146,14 +146,14 @@ func NewWebServerChart(scope constructs.Construct, id string, props *WebServerCh
 	cdk8skit.NewFrontend(
 		chart,
 		id,
-		jsii.String("{{ .Values.django_domain }}"),
+		jsii.String("{{ .Values.WebServer.WsgiDomain }}"),
 		jsii.String("letsencrypt-prod"),
 		jsii.String("wongsaang/chatgpt-ui-web-server:v2.5.2"),
 		jsii.Number(80),
 		jsii.Number(80),
 		props.network,
 		&map[*string]*string{
-			jsii.String("BACKEND_URL"): jsii.String("{{ .Values.backend_url }}"),
+			jsii.String("BACKEND_URL"): jsii.String("{{ .Values.WebServer.BackendUrl }}"),
 		},
 	)
 
@@ -170,15 +170,15 @@ func NewClientChart(scope constructs.Construct, id string, props *ClientChartPro
 	cdk8skit.NewFrontend(
 		chart,
 		id,
-		jsii.String("{{ .Values.client_domain }}"),
+		jsii.String("{{ .Values.Client.Domain }}"),
 		jsii.String("letsencrypt-prod"),
 		jsii.String("wongsaang/chatgpt-ui-client:latest"),
 		jsii.Number(80),
 		jsii.Number(80),
 		props.network,
 		&map[*string]*string{
-			jsii.String("SERVER_DOMAIN"):          jsii.String("{{ .Values.server_domain }}"),
-			jsii.String("NUXT_PUBLIC_APP_NAME"):   jsii.String("{{ .Values.nuxt_public_app_name }}"),
+			jsii.String("SERVER_DOMAIN"):          jsii.String("{{ .Values.Client.ServerUrl }}"),
+			jsii.String("NUXT_PUBLIC_APP_NAME"):   jsii.String("{{ .Values.Client.NuxtPublicAppName }}"),
 			jsii.String("NUXT_PUBLIC_TYPEWRITER"): jsii.String("false"),
 		},
 	)
@@ -207,7 +207,7 @@ func main() {
 	}
 
 	app := cdk8s.NewApp(&cdk8s.AppProps{
-		Outdir:              jsii.String("../.helm/templates"),
+		Outdir:              jsii.String(config.Outdir),
 		OutputFileExtension: jsii.String(".yaml"),
 		YamlOutputType:      cdk8s.YamlOutputType_FILE_PER_CHART,
 	})

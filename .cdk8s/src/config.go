@@ -10,6 +10,7 @@ import (
 
 type Config struct {
 	Environment string `mapstructure:"Environment"`
+	Outdir      string `mapstructure:"Outdir"`
 	StorageName string `mapstructure:"StorageName"`
 }
 
@@ -26,7 +27,7 @@ func LoadConfig() (Config, error) {
 	viper.AutomaticEnv()
 	viper.BindEnv("Environment")
 
-	pflag.String("env", viper.GetString("Environment"), "Установка окружения (например, Development, Production)")
+	pflag.StringP("environment", "e", viper.GetString("Environment"), "Установка окружения (например, Development, Production)")
 
 	pflag.Parse()
 	viper.BindPFlags(pflag.CommandLine)
@@ -36,7 +37,7 @@ func LoadConfig() (Config, error) {
 		return config, fmt.Errorf("ошибка чтения файла конфигурации: %w", err)
 	}
 
-	if environment := viper.GetString("env"); len(environment) != 0 {
+	if environment := viper.GetString("environment"); len(environment) != 0 {
 		// Переопределение базовой конфигурации файлом окружения
 		viper.SetConfigName("config." + environment)
 

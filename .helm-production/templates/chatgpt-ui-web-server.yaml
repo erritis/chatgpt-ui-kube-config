@@ -1,0 +1,88 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    io.service: chatgpt-ui-web-server
+  name: chatgpt-ui-web-server-deployment
+  namespace: chatgpt-ui
+spec:
+  minReadySeconds: 0
+  progressDeadlineSeconds: 600
+  replicas: 1
+  selector:
+    matchLabels:
+      cdk8s.io/metadata.addr: chatgpt-ui-web-server-deployment-c8388696
+  strategy:
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 25%
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        cdk8s.io/metadata.addr: chatgpt-ui-web-server-deployment-c8388696
+        io.network/chatgpt-ui-network: "true"
+    spec:
+      automountServiceAccountToken: false
+      containers:
+        - env:
+            - name: BACKEND_URL
+              value: "{{ .Values.WebServer.BackendUrl }}"
+          image: wongsaang/chatgpt-ui-web-server:v2.5.2
+          imagePullPolicy: Always
+          name: chatgpt-ui-web-server
+          ports:
+            - containerPort: 80
+          securityContext:
+            allowPrivilegeEscalation: false
+            privileged: false
+            readOnlyRootFilesystem: false
+            runAsNonRoot: false
+          startupProbe:
+            failureThreshold: 3
+            tcpSocket:
+              port: 80
+      dnsPolicy: ClusterFirst
+      hostNetwork: false
+      restartPolicy: Always
+      securityContext:
+        fsGroupChangePolicy: Always
+        runAsNonRoot: false
+      setHostnameAsFQDN: false
+      terminationGracePeriodSeconds: 30
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: chatgpt-ui-web-server-service
+  namespace: chatgpt-ui
+spec:
+  externalIPs: []
+  ports:
+    - port: 80
+      targetPort: 80
+  selector:
+    cdk8s.io/metadata.addr: chatgpt-ui-web-server-deployment-c8388696
+  type: ClusterIP
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+  labels:
+    io.service: chatgpt-ui-web-server
+  name: chatgpt-ui-web-server-ingress
+  namespace: chatgpt-ui
+spec:
+  rules:
+    - host: "{{ .Values.WebServer.WsgiDomain }}"
+      http:
+        paths:
+          - backend:
+              service:
+                name: chatgpt-ui-web-server-service
+                port:
+                  number: 80
+            path: /
+            pathType: Prefix

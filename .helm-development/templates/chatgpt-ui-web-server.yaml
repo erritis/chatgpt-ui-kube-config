@@ -27,7 +27,7 @@ spec:
       containers:
         - env:
             - name: BACKEND_URL
-              value: "{{ .Values.backend_url }}"
+              value: "{{ .Values.WebServer.BackendUrl }}"
           image: wongsaang/chatgpt-ui-web-server:v2.5.2
           imagePullPolicy: Always
           name: chatgpt-ui-web-server
@@ -76,7 +76,7 @@ metadata:
   namespace: chatgpt-ui
 spec:
   rules:
-    - host: "{{ .Values.django_domain }}"
+    - host: "{{ .Values.WebServer.WsgiDomain }}"
       http:
         paths:
           - backend:
