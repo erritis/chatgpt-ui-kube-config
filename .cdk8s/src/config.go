@@ -9,9 +9,10 @@ import (
 )
 
 type Config struct {
-	Environment string `mapstructure:"Environment"`
-	Outdir      string `mapstructure:"Outdir"`
-	StorageName string `mapstructure:"StorageName"`
+	Environment   string `mapstructure:"Environment"`
+	Outdir        string `mapstructure:"Outdir"`
+	StorageName   string `mapstructure:"StorageName"`
+	ClusterIssuer string `mapstructure:"ClusterIssuer"`
 }
 
 func LoadConfig() (Config, error) {

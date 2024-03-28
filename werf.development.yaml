@@ -2,4 +2,5 @@ configVersion: 1
 project: chatgpt-ui
 
 deploy:
+  namespace: chatgpt-ui
   helmChartDir: .helm-development

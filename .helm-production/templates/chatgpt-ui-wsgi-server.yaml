@@ -26,10 +26,6 @@ spec:
       automountServiceAccountToken: false
       containers:
         - env:
-            - name: DJANGO_SUPERUSER_USERNAME
-              value: "{{ .Values.WsgiServer.Django.Superuser.Username }}"
-            - name: DJANGO_SUPERUSER_PASSWORD
-              value: "{{ .Values.WsgiServer.Django.Superuser.Password }}"
             - name: DJANGO_SUPERUSER_EMAIL
               value: "{{ .Values.WsgiServer.Django.Superuser.Email }}"
             - name: SERVER_WORKERS
@@ -42,6 +38,10 @@ spec:
               value: "{{ .Values.WsgiServer.Domain }}"
             - name: DB_URL
               value: "{{ .Values.WsgiServer.DbUrl }}"
+            - name: DJANGO_SUPERUSER_USERNAME
+              value: "{{ .Values.WsgiServer.Django.Superuser.Username }}"
+            - name: DJANGO_SUPERUSER_PASSWORD
+              value: "{{ .Values.WsgiServer.Django.Superuser.Password }}"
           image: wongsaang/chatgpt-ui-wsgi-server:latest
           imagePullPolicy: Always
           name: chatgpt-ui-wsgi-server

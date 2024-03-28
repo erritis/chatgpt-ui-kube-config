@@ -1,24 +1,22 @@
 apiVersion: v1
-kind: PersistentVolume
+kind: PersistentVolumeClaim
 metadata:
-  name: chatgpt-ui-db-persistent-volume
+  name: chatgpt-ui-db-persistent-volume-claim
   namespace: chatgpt-ui
 spec:
   accessModes:
     - ReadWriteOnce
     - ReadOnlyMany
-  capacity:
-    storage: 0.1Gi
-  claimRef:
-    name: chatgpt-ui-db-persistent-volume-claim
-  persistentVolumeReclaimPolicy: Retain
-  storageClassName: default
+  resources:
+    requests:
+      storage: 0.1Gi
+  storageClassName: standard
   volumeMode: Filesystem
 ---
 apiVersion: v1
 kind: Secret
 metadata:
-  name: chatgpt-ui-db-db-secret
+  name: chatgpt-ui-db-name-secret
   namespace: chatgpt-ui
 immutable: false
 stringData:
@@ -85,14 +83,23 @@ spec:
       automountServiceAccountToken: false
       containers:
         - env:
-            - name: POSTGRES_PASSWORD_FILE
-              value: /run/secrets/chatgpt-db-passwd/chatgpt-db-passwd
             - name: POSTGRES_DB_FILE
               value: /run/secrets/chatgpt-db/chatgpt-db
             - name: POSTGRES_USER_FILE
               value: /run/secrets/chatgpt-db-user/chatgpt-db-user
+            - name: POSTGRES_PASSWORD_FILE
+              value: /run/secrets/chatgpt-db-passwd/chatgpt-db-passwd
           image: postgres:12.9
           imagePullPolicy: Always
+          livenessProbe:
+            exec:
+              command:
+                - /bin/sh
+                - -c
+                - exec pg_isready -h 127.0.0.1
+            failureThreshold: 5
+            periodSeconds: 5
+            timeoutSeconds: 5
           name: chatgpt-ui-db
           ports:
             - containerPort: 5432
@@ -106,14 +113,14 @@ spec:
             tcpSocket:
               port: 5432
           volumeMounts:
-            - mountPath: /var/lib/postgresql/data
-              name: chatgpt-ui-db-persistent-volume-claim
             - mountPath: /run/secrets/chatgpt-db
               name: chatgpt-db
             - mountPath: /run/secrets/chatgpt-db-user
               name: chatgpt-db-user
             - mountPath: /run/secrets/chatgpt-db-passwd
               name: chatgpt-db-passwd
+            - mountPath: /var/lib/postgresql/data
+              name: chatgpt-ui-db-persistent-volume-claim
       dnsPolicy: ClusterFirst
       hostNetwork: false
       restartPolicy: Always
@@ -123,28 +130,28 @@ spec:
       setHostnameAsFQDN: false
       terminationGracePeriodSeconds: 30
       volumes:
-        - name: chatgpt-ui-db-persistent-volume-claim
-          persistentVolumeClaim:
-            claimName: chatgpt-ui-db-persistent-volume-claim
-            readOnly: false
         - name: chatgpt-db
           secret:
             items:
-              - key: name
+              - key: chatgpt-db
                 path: chatgpt-db
-            secretName: chatgpt-ui-db-db-secret
+            secretName: chatgpt-ui-db-name-secret
         - name: chatgpt-db-user
           secret:
             items:
-              - key: name
+              - key: chatgpt-db-user
                 path: chatgpt-db-user
             secretName: chatgpt-ui-db-user-secret
         - name: chatgpt-db-passwd
           secret:
             items:
-              - key: name
+              - key: chatgpt-db-passwd
                 path: chatgpt-db-passwd
             secretName: chatgpt-ui-db-passwd-secret
+        - name: chatgpt-ui-db-persistent-volume-claim
+          persistentVolumeClaim:
+            claimName: chatgpt-ui-db-persistent-volume-claim
+            readOnly: false
   updateStrategy:
     rollingUpdate:
       partition: 0

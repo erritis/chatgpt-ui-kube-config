@@ -28,7 +28,7 @@ spec:
         - env:
             - name: BACKEND_URL
               value: "{{ .Values.WebServer.BackendUrl }}"
-          image: wongsaang/chatgpt-ui-web-server:v2.5.2
+          image: wongsaang/chatgpt-ui-web-server:latest
           imagePullPolicy: Always
           name: chatgpt-ui-web-server
           ports:

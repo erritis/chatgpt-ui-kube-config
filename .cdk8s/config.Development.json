@@ -1,3 +1,4 @@
 {
-    "Outdir": "../.helm-development/templates"
+    "Outdir": "../.helm-development/templates",
+    "ClusterIssuer": "cert-manager-issuer"
 }

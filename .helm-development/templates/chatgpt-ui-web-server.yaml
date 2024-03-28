@@ -28,7 +28,7 @@ spec:
         - env:
             - name: BACKEND_URL
               value: "{{ .Values.WebServer.BackendUrl }}"
-          image: wongsaang/chatgpt-ui-web-server:v2.5.2
+          image: wongsaang/chatgpt-ui-web-server:latest
           imagePullPolicy: Always
           name: chatgpt-ui-web-server
           ports:
@@ -69,7 +69,7 @@ apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   annotations:
-    cert-manager.io/cluster-issuer: letsencrypt-prod
+    cert-manager.io/cluster-issuer: cert-manager-issuer
   labels:
     io.service: chatgpt-ui-web-server
   name: chatgpt-ui-web-server-ingress

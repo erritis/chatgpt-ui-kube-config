@@ -6,11 +6,12 @@ import (
 	"github.com/aws/constructs-go/constructs/v10"
 	"github.com/aws/jsii-runtime-go"
 	"github.com/cdk8s-team/cdk8s-core-go/cdk8s/v2"
-	configs "github.com/erritis/cdk8skit/v2/cdk8skit/configs"
-	deployments "github.com/erritis/cdk8skit/v2/cdk8skit/deployments"
-	networks "github.com/erritis/cdk8skit/v2/cdk8skit/networks"
-	statefulsets "github.com/erritis/cdk8skit/v2/cdk8skit/statefulsets"
-	volumes "github.com/erritis/cdk8skit/v2/cdk8skit/volumes"
+	configs "github.com/erritis/cdk8skit/v3/cdk8skit/configs"
+	deployments "github.com/erritis/cdk8skit/v3/cdk8skit/deployments"
+	networks "github.com/erritis/cdk8skit/v3/cdk8skit/networks"
+	statefulsets "github.com/erritis/cdk8skit/v3/cdk8skit/statefulsets"
+	storages "github.com/erritis/cdk8skit/v3/cdk8skit/storages"
+	volumes "github.com/erritis/cdk8skit/v3/cdk8skit/volumes"
 )
 
 type DbChartProps struct {
@@ -27,12 +28,14 @@ type WsgiServerChartProps struct {
 
 type WebServerChartProps struct {
 	cdk8s.ChartProps
-	Network string
+	Network       string
+	ClusterIssuer string
 }
 
 type ClientChartProps struct {
 	cdk8s.ChartProps
-	Network string
+	Network       string
+	ClusterIssuer string
 }
 
 type NetworkChartProps struct {
@@ -47,43 +50,72 @@ func NewDbChart(scope constructs.Construct, id string, props *DbChartProps) cdk8
 	}
 	chart := cdk8s.NewChart(scope, jsii.String(id), &cprops)
 
-	dbData := volumes.TuplePersistent{}
-
 	if props.Environment == "Production" {
-		volumes.NewLocalStorage(chart, props.StorageName, &volumes.LocalStorageProps{})
-		dbData = volumes.NewLocalVolume(
+		storages.NewLocalStorage(chart, props.StorageName, &storages.LocalStorageProps{})
+		lpvr := volumes.NewLocalVolume(
 			chart,
 			"persistent-volume",
 			jsii.String("/mnt/chatgptdb"),
 			&volumes.LocalVolumeProps{
-				VolumeProps: &volumes.VolumeProps{
-					StorageClassName: jsii.String(props.StorageName),
+				StorageClassName: jsii.String(props.StorageName),
+			},
+		)
+
+		statefulsets.NewPostgres(
+			chart,
+			id,
+			&statefulsets.PostgresProps{
+				Image:            jsii.String("postgres:12.9"),
+				PrefixSecretName: jsii.String("chatgpt-db"),
+				DBConfig: &statefulsets.DBConfig{
+					Name:     jsii.String("{{ .Values.Db.Name }}"),
+					Username: jsii.String("{{ .Values.Db.Username }}"),
+					Password: jsii.String("{{ .Values.Db.Password }}"),
 				},
+				VolumeConfig: &statefulsets.VolumeConfig{
+					Volume: &lpvr.Volume,
+				},
+				Network: jsii.String(props.Network),
 			},
 		)
 	}
 
-	statefulsets.NewPostgres(
-		chart,
-		id,
-		&statefulsets.PostgresProps{
-			Image:            jsii.String("postgres:12.9"),
-			PrefixSecretName: jsii.String("chatgpt-db"),
-			DBConfig: &statefulsets.DBConfig{
-				Name:     jsii.String("{{ .Values.Db.Name }}"),
-				Username: jsii.String("{{ .Values.Db.Username }}"),
-				Password: jsii.String("{{ .Values.Db.Password }}"),
-			},
-			VolumeDefaultConfig: &statefulsets.VolumeDefaultConfig{
-				PrefixPersistentName: jsii.String("persistent-volume"),
-				VolumeProps: &volumes.VolumeProps{
+	if props.Environment == "Development" {
+		statefulsets.NewPostgres(
+			chart,
+			id,
+			&statefulsets.PostgresProps{
+				Image:            jsii.String("postgres:12.9"),
+				PrefixSecretName: jsii.String("chatgpt-db"),
+				DBConfig: &statefulsets.DBConfig{
+					Name:     jsii.String("{{ .Values.Db.Name }}"),
+					Username: jsii.String("{{ .Values.Db.Username }}"),
+					Password: jsii.String("{{ .Values.Db.Password }}"),
+				},
+				VolumeConfig: &statefulsets.VolumeConfig{
 					StorageClassName: jsii.String(props.StorageName),
 				},
+				Network: jsii.String(props.Network),
 			},
-			Volume:  &dbData.Volume,
-			Network: jsii.String(props.Network),
-		},
-	)
+		)
+	}
+
+	// if props.Environment != "Production" && props.Environment != "Development" {
+	// 	statefulsets.NewKubePostgres(
+	// 		chart,
+	// 		id,
+	// 		&statefulsets.KubePostgresProps{
+	// 			Image:            jsii.String("postgres:12.9"),
+	// 			PrefixSecretName: jsii.String("chatgpt-db"),
+	// 			DBConfig: &statefulsets.KubeDBConfig{
+	// 				Name:     jsii.String("{{ .Values.Db.Name }}"),
+	// 				Username: jsii.String("{{ .Values.Db.Username }}"),
+	// 				Password: jsii.String("{{ .Values.Db.Password }}"),
+	// 			},
+	// 			Network: jsii.String(props.Network),
+	// 		},
+	// 	)
+	// }
 
 	return chart
 }
@@ -131,7 +163,7 @@ func NewWebServerChart(scope constructs.Construct, id string, props *WebServerCh
 		chart,
 		id,
 		jsii.String("{{ .Values.WebServer.WsgiDomain }}"),
-		jsii.String("wongsaang/chatgpt-ui-web-server:v2.5.2"),
+		jsii.String("wongsaang/chatgpt-ui-web-server:latest"),
 		&deployments.FrontendProps{
 			PortConfig: &configs.ServicePortConfig{
 				ContainerPort: jsii.Number(80),
@@ -139,7 +171,7 @@ func NewWebServerChart(scope constructs.Construct, id string, props *WebServerCh
 			Variables: &map[*string]*string{
 				jsii.String("BACKEND_URL"): jsii.String("{{ .Values.WebServer.BackendUrl }}"),
 			},
-			ClusterIssuer: jsii.String("letsencrypt-prod"),
+			ClusterIssuer: &props.ClusterIssuer,
 			Network:       jsii.String(props.Network),
 		},
 	)
@@ -168,7 +200,7 @@ func NewClientChart(scope constructs.Construct, id string, props *ClientChartPro
 				jsii.String("NUXT_PUBLIC_APP_NAME"):   jsii.String("{{ .Values.Client.NuxtPublicAppName }}"),
 				jsii.String("NUXT_PUBLIC_TYPEWRITER"): jsii.String("false"),
 			},
-			ClusterIssuer: jsii.String("letsencrypt-prod"),
+			ClusterIssuer: &props.ClusterIssuer,
 			Network:       jsii.String(props.Network),
 		},
 	)
@@ -218,12 +250,14 @@ func main() {
 		Network:    "io.network/chatgpt-ui-network",
 	})
 	NewWebServerChart(app, "chatgpt-ui-web-server", &WebServerChartProps{
-		ChartProps: cprops,
-		Network:    "io.network/chatgpt-ui-network",
+		ChartProps:    cprops,
+		Network:       "io.network/chatgpt-ui-network",
+		ClusterIssuer: config.ClusterIssuer,
 	})
 	NewClientChart(app, "chatgpt-ui-client", &ClientChartProps{
-		ChartProps: cprops,
-		Network:    "io.network/chatgpt-ui-network",
+		ChartProps:    cprops,
+		Network:       "io.network/chatgpt-ui-network",
+		ClusterIssuer: config.ClusterIssuer,
 	})
 
 	NewNetworkChart(app, "chatgpt-ui-network", &NetworkChartProps{

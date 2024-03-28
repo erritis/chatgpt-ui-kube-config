@@ -26,12 +26,12 @@ spec:
       automountServiceAccountToken: false
       containers:
         - env:
-            - name: NUXT_PUBLIC_TYPEWRITER
-              value: "false"
             - name: SERVER_DOMAIN
               value: "{{ .Values.Client.ServerUrl }}"
             - name: NUXT_PUBLIC_APP_NAME
               value: "{{ .Values.Client.NuxtPublicAppName }}"
+            - name: NUXT_PUBLIC_TYPEWRITER
+              value: "false"
           image: wongsaang/chatgpt-ui-client:latest
           imagePullPolicy: Always
           name: chatgpt-ui-client
@@ -73,7 +73,7 @@ apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   annotations:
-    cert-manager.io/cluster-issuer: letsencrypt-prod
+    cert-manager.io/cluster-issuer: cert-manager-issuer
   labels:
     io.service: chatgpt-ui-client
   name: chatgpt-ui-client-ingress
