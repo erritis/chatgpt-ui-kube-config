@@ -2,7 +2,7 @@ apiVersion: storage.k8s.io/v1
 kind: StorageClass
 metadata:
   annotations:
-    storageclass.kubernetes.io/is-default-class: "true"
+    storageclass.kubernetes.io/is-default-class: "false"
   name: chatgpt-ui-local-storage
 provisioner: kubernetes.io/no-provisioner
 volumeBindingMode: WaitForFirstConsumer
@@ -104,12 +104,12 @@ spec:
       automountServiceAccountToken: false
       containers:
         - env:
-            - name: POSTGRES_PASSWORD_FILE
-              value: /run/secrets/chatgpt-db-passwd/chatgpt-db-passwd
             - name: POSTGRES_DB_FILE
               value: /run/secrets/chatgpt-db/chatgpt-db
             - name: POSTGRES_USER_FILE
               value: /run/secrets/chatgpt-db-user/chatgpt-db-user
+            - name: POSTGRES_PASSWORD_FILE
+              value: /run/secrets/chatgpt-db-passwd/chatgpt-db-passwd
           image: postgres:12.9
           imagePullPolicy: Always
           name: chatgpt-ui-db
@@ -125,14 +125,14 @@ spec:
             tcpSocket:
               port: 5432
           volumeMounts:
-            - mountPath: /run/secrets/chatgpt-db-user
-              name: chatgpt-db-user
-            - mountPath: /run/secrets/chatgpt-db-passwd
-              name: chatgpt-db-passwd
             - mountPath: /var/lib/postgresql/data
               name: chatgpt-ui-db-persistent-volume-claim
             - mountPath: /run/secrets/chatgpt-db
               name: chatgpt-db
+            - mountPath: /run/secrets/chatgpt-db-user
+              name: chatgpt-db-user
+            - mountPath: /run/secrets/chatgpt-db-passwd
+              name: chatgpt-db-passwd
       dnsPolicy: ClusterFirst
       hostNetwork: false
       restartPolicy: Always
@@ -142,6 +142,16 @@ spec:
       setHostnameAsFQDN: false
       terminationGracePeriodSeconds: 30
       volumes:
+        - name: chatgpt-ui-db-persistent-volume-claim
+          persistentVolumeClaim:
+            claimName: chatgpt-ui-db-persistent-volume-claim
+            readOnly: false
+        - name: chatgpt-db
+          secret:
+            items:
+              - key: name
+                path: chatgpt-db
+            secretName: chatgpt-ui-db-db-secret
         - name: chatgpt-db-user
           secret:
             items:
@@ -154,16 +164,6 @@ spec:
               - key: name
                 path: chatgpt-db-passwd
             secretName: chatgpt-ui-db-passwd-secret
-        - name: chatgpt-ui-db-persistent-volume-claim
-          persistentVolumeClaim:
-            claimName: chatgpt-ui-db-persistent-volume-claim
-            readOnly: false
-        - name: chatgpt-db
-          secret:
-            items:
-              - key: name
-                path: chatgpt-db
-            secretName: chatgpt-ui-db-db-secret
   updateStrategy:
     rollingUpdate:
       partition: 0
