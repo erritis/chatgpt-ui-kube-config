@@ -1,19 +1,4 @@
 apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: chatgpt-ui-db-persistent-volume-claim
-  namespace: chatgpt-ui
-spec:
-  accessModes:
-    - ReadWriteOnce
-    - ReadOnlyMany
-  resources:
-    requests:
-      storage: 0.1Gi
-  storageClassName: standard
-  volumeMode: Filesystem
----
-apiVersion: v1
 kind: Secret
 metadata:
   name: chatgpt-ui-db-name-secret
@@ -47,16 +32,16 @@ apiVersion: v1
 kind: Service
 metadata:
   labels:
+    io.network/chatgpt-ui-network: "true"
     io.service: chatgpt-ui-db
   name: chatgpt-ui-db-service
   namespace: chatgpt-ui
 spec:
-  externalIPs: []
   ports:
     - port: 5432
       targetPort: 5432
   selector:
-    cdk8s.io/metadata.addr: chatgpt-ui-db-statefulset-c87a55ef
+    io.service: chatgpt-ui-db
   type: ClusterIP
 ---
 apiVersion: apps/v1
@@ -67,20 +52,17 @@ metadata:
   name: chatgpt-ui-db-statefulset
   namespace: chatgpt-ui
 spec:
-  minReadySeconds: 0
-  podManagementPolicy: OrderedReady
   replicas: 1
   selector:
     matchLabels:
-      cdk8s.io/metadata.addr: chatgpt-ui-db-statefulset-c87a55ef
+      io.service: chatgpt-ui-db
   serviceName: chatgpt-ui-db-service
   template:
     metadata:
       labels:
-        cdk8s.io/metadata.addr: chatgpt-ui-db-statefulset-c87a55ef
         io.network/chatgpt-ui-network: "true"
+        io.service: chatgpt-ui-db
     spec:
-      automountServiceAccountToken: false
       containers:
         - env:
             - name: POSTGRES_DB_FILE
@@ -90,7 +72,6 @@ spec:
             - name: POSTGRES_PASSWORD_FILE
               value: /run/secrets/chatgpt-db-passwd/chatgpt-db-passwd
           image: postgres:12.9
-          imagePullPolicy: Always
           livenessProbe:
             exec:
               command:
@@ -100,35 +81,23 @@ spec:
             failureThreshold: 5
             periodSeconds: 5
             timeoutSeconds: 5
-          name: chatgpt-ui-db
+          name: chatgpt-ui-db-statefulset-pod
           ports:
             - containerPort: 5432
+          resources: {}
           securityContext:
-            allowPrivilegeEscalation: false
-            privileged: false
-            readOnlyRootFilesystem: false
             runAsNonRoot: false
-          startupProbe:
-            failureThreshold: 3
-            tcpSocket:
-              port: 5432
           volumeMounts:
+            - mountPath: /run/secrets/chatgpt-db-passwd
+              name: chatgpt-db-passwd
             - mountPath: /run/secrets/chatgpt-db
               name: chatgpt-db
             - mountPath: /run/secrets/chatgpt-db-user
               name: chatgpt-db-user
-            - mountPath: /run/secrets/chatgpt-db-passwd
-              name: chatgpt-db-passwd
             - mountPath: /var/lib/postgresql/data
-              name: chatgpt-ui-db-persistent-volume-claim
-      dnsPolicy: ClusterFirst
-      hostNetwork: false
-      restartPolicy: Always
+              name: chatgpt-db-claim
       securityContext:
-        fsGroupChangePolicy: Always
         runAsNonRoot: false
-      setHostnameAsFQDN: false
-      terminationGracePeriodSeconds: 30
       volumes:
         - name: chatgpt-db
           secret:
@@ -148,11 +117,15 @@ spec:
               - key: chatgpt-db-passwd
                 path: chatgpt-db-passwd
             secretName: chatgpt-ui-db-passwd-secret
-        - name: chatgpt-ui-db-persistent-volume-claim
-          persistentVolumeClaim:
-            claimName: chatgpt-ui-db-persistent-volume-claim
-            readOnly: false
-  updateStrategy:
-    rollingUpdate:
-      partition: 0
-    type: RollingUpdate
+  volumeClaimTemplates:
+    - metadata:
+        labels:
+          io.service: chatgpt-ui-db
+        name: chatgpt-db-claim
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        resources:
+          requests:
+            storage: 0.1Gi
+        storageClassName: standard

@@ -6,12 +6,9 @@ import (
 	"github.com/aws/constructs-go/constructs/v10"
 	"github.com/aws/jsii-runtime-go"
 	"github.com/cdk8s-team/cdk8s-core-go/cdk8s/v2"
-	configs "github.com/erritis/cdk8skit/v3/cdk8skit/configs"
-	deployments "github.com/erritis/cdk8skit/v3/cdk8skit/deployments"
-	networks "github.com/erritis/cdk8skit/v3/cdk8skit/networks"
-	statefulsets "github.com/erritis/cdk8skit/v3/cdk8skit/statefulsets"
-	storages "github.com/erritis/cdk8skit/v3/cdk8skit/storages"
-	volumes "github.com/erritis/cdk8skit/v3/cdk8skit/volumes"
+	deployments "github.com/erritis/cdk8skit/v4/cdk8s/deployments"
+	networks "github.com/erritis/cdk8skit/v4/cdk8s/networks"
+	kube_statefulsets "github.com/erritis/cdk8skit/v4/k8s/statefulsets"
 )
 
 type DbChartProps struct {
@@ -50,72 +47,23 @@ func NewDbChart(scope constructs.Construct, id string, props *DbChartProps) cdk8
 	}
 	chart := cdk8s.NewChart(scope, jsii.String(id), &cprops)
 
-	if props.Environment == "Production" {
-		storages.NewLocalStorage(chart, props.StorageName, &storages.LocalStorageProps{})
-		lpvr := volumes.NewLocalVolume(
-			chart,
-			"persistent-volume",
-			jsii.String("/mnt/chatgptdb"),
-			&volumes.LocalVolumeProps{
+	kube_statefulsets.NewKubePostgres(
+		chart,
+		id,
+		&kube_statefulsets.KubePostgresProps{
+			Image: jsii.String("postgres:12.9"),
+			Database: &kube_statefulsets.KubePostgresDatabase{
+				Name:     jsii.String("{{ .Values.Db.Name }}"),
+				Username: jsii.String("{{ .Values.Db.Username }}"),
+				Password: jsii.String("{{ .Values.Db.Password }}"),
+			},
+			VolumeSettings: &kube_statefulsets.KubePostgresVolumeSettings{
+				PrefixSecretName: jsii.String("chatgpt-db"),
 				StorageClassName: jsii.String(props.StorageName),
 			},
-		)
-
-		statefulsets.NewPostgres(
-			chart,
-			id,
-			&statefulsets.PostgresProps{
-				Image:            jsii.String("postgres:12.9"),
-				PrefixSecretName: jsii.String("chatgpt-db"),
-				DBConfig: &statefulsets.DBConfig{
-					Name:     jsii.String("{{ .Values.Db.Name }}"),
-					Username: jsii.String("{{ .Values.Db.Username }}"),
-					Password: jsii.String("{{ .Values.Db.Password }}"),
-				},
-				VolumeConfig: &statefulsets.VolumeConfig{
-					Volume: &lpvr.Volume,
-				},
-				Network: jsii.String(props.Network),
-			},
-		)
-	}
-
-	if props.Environment == "Development" {
-		statefulsets.NewPostgres(
-			chart,
-			id,
-			&statefulsets.PostgresProps{
-				Image:            jsii.String("postgres:12.9"),
-				PrefixSecretName: jsii.String("chatgpt-db"),
-				DBConfig: &statefulsets.DBConfig{
-					Name:     jsii.String("{{ .Values.Db.Name }}"),
-					Username: jsii.String("{{ .Values.Db.Username }}"),
-					Password: jsii.String("{{ .Values.Db.Password }}"),
-				},
-				VolumeConfig: &statefulsets.VolumeConfig{
-					StorageClassName: jsii.String(props.StorageName),
-				},
-				Network: jsii.String(props.Network),
-			},
-		)
-	}
-
-	// if props.Environment != "Production" && props.Environment != "Development" {
-	// 	statefulsets.NewKubePostgres(
-	// 		chart,
-	// 		id,
-	// 		&statefulsets.KubePostgresProps{
-	// 			Image:            jsii.String("postgres:12.9"),
-	// 			PrefixSecretName: jsii.String("chatgpt-db"),
-	// 			DBConfig: &statefulsets.KubeDBConfig{
-	// 				Name:     jsii.String("{{ .Values.Db.Name }}"),
-	// 				Username: jsii.String("{{ .Values.Db.Username }}"),
-	// 				Password: jsii.String("{{ .Values.Db.Password }}"),
-	// 			},
-	// 			Network: jsii.String(props.Network),
-	// 		},
-	// 	)
-	// }
+			Network: jsii.String(props.Network),
+		},
+	)
 
 	return chart
 }
@@ -132,7 +80,7 @@ func NewWsgiServerChart(scope constructs.Construct, id string, props *WsgiServer
 		id,
 		jsii.String("wongsaang/chatgpt-ui-wsgi-server:latest"),
 		&deployments.BackendProps{
-			PortConfig: &configs.ServicePortConfig{
+			Ports: &deployments.BackendPort{
 				ContainerPort: jsii.Number(8000),
 			},
 			Variables: &map[*string]*string{
@@ -165,7 +113,7 @@ func NewWebServerChart(scope constructs.Construct, id string, props *WebServerCh
 		jsii.String("{{ .Values.WebServer.WsgiDomain }}"),
 		jsii.String("wongsaang/chatgpt-ui-web-server:latest"),
 		&deployments.FrontendProps{
-			PortConfig: &configs.ServicePortConfig{
+			Ports: &deployments.FrontendPort{
 				ContainerPort: jsii.Number(80),
 			},
 			Variables: &map[*string]*string{
@@ -192,7 +140,7 @@ func NewClientChart(scope constructs.Construct, id string, props *ClientChartPro
 		jsii.String("{{ .Values.Client.Domain }}"),
 		jsii.String("wongsaang/chatgpt-ui-client:latest"),
 		&deployments.FrontendProps{
-			PortConfig: &configs.ServicePortConfig{
+			Ports: &deployments.FrontendPort{
 				ContainerPort: jsii.Number(80),
 			},
 			Variables: &map[*string]*string{

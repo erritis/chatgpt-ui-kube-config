@@ -1,5 +1,5 @@
 {
     "Outdir": "../.helm-production/templates",
-    "StorageName": "chatgpt-ui-local-storage",
+    "StorageName": "local-path",
     "ClusterIssuer": "letsencrypt-prod"
 }
